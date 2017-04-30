@@ -16,11 +16,12 @@ full_train <- full_train[colSums(is.na(full_train)) == 0]
 full_test <- full_test[colSums(is.na(full_test)) == 0]
 
 # Select the factors you want to use. Expand this later.
-factors <- c("id",
-             "unemployment",
-             "salary_growth",
+factors <- c("price_doc",
+             "id",
+            # "unemployment",
+           #  "salary_growth",
              "mortgage_growth",
-             "pop_natural_increase",
+            # "pop_natural_increase",
              "deposits_rate",
              "gdp_quart_growth",
              "eurrub",
@@ -36,3 +37,10 @@ factors <- c("id",
 
 processed_train <- full_train[factors]
 processed_test <- full_test[factors]
+
+# Fit a simple linear model
+model <- lm(price_doc ~ ., data = processed_train)
+fit <- predict(model, processed_test)
+
+submission <- data.frame(id = processed_test$id, price_doc = fit)
+
