@@ -1,5 +1,5 @@
 library(dplyr)
-
+library(xgboost)
 
 
 # Load the data
@@ -32,6 +32,8 @@ for(i in 1:ncol(full_test)){
 
 # Fill in the missing data with median
 # This might make the sub-area factor useless. Might want to remove.
+# Also curently using median values from test set within the test set. Might be
+# better to use the median values from the training set
 for(i in 1:ncol(full_train)){
   full_train[is.na(full_train[,i]), i] <- median(full_train[,i], na.rm = TRUE)
 }
@@ -41,36 +43,37 @@ for(i in 1:ncol(full_test)){
 }
 
 
-
-
-
-
-# Select the factors you want to use. Expand this later.
-factors <- c("price_doc",
-             "id",
-             "unemployment",
-             "salary_growth",
-             "mortgage_growth",
-             "pop_natural_increase",
-             "deposits_rate",
-             "gdp_quart_growth",
-             "eurrub",
-             "green_zone_part",
-             "children_school",
-             "full_sq",
-             "area_m",
-             "product_type",
-             "preschool_education_centers_raion",
-             "university_top_20_raion",
-             "shopping_centers_raion",
-             "office_raion")
-
-processed_train <- full_train[factors]
-processed_test <- full_test[factors]
-
 # Fit a simple linear model
-model <- lm(price_doc ~ ., data = processed_train)
-fit <- predict(model, processed_test)
+# model <- lm(price_doc ~ ., data = processed_train)
+# fit <- predict(model, processed_test)
+# 
+# submission <- data.frame(id = processed_test$id, price_doc = fit)
 
-submission <- data.frame(id = processed_test$id, price_doc = fit)
+# Fit an XGBoost model
 
+train_x <- full_train
+train_x$price_doc <- NULL
+train_y <- full_train$price_doc
+
+test_x <- full_test
+
+pmt = proc.time()
+model = xgboost(data = as.matrix(train_x), 
+                label = train_y,
+                eta = 0.05,
+                max_depth = 5, 
+                nround=500, 
+                subsample = 1,
+                colsample_bytree = 0.5,
+                seed = 100,
+                #eval_metric = "merror",
+                booster = "gbtree",
+                objective = "reg:linear",
+                missing = NaN,
+                silent = 1)
+show(proc.time() - pmt)
+
+pred = predict(model,  as.matrix(test_x), missing=NaN)
+pred_matrix = matrix(pred, nrow = nrow(full_test), byrow = TRUE)
+
+submission <- data.frame(id = full_test$id, price_doc = pred_matrix)
