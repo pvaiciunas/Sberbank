@@ -11,17 +11,21 @@ macro <- read.csv("C:/Users/pvaiciunas/Google Drive/Programming/R/Kaggle/Sberban
 full_train <- merge(train, macro)
 full_test <- merge(test, macro)
 
-# Choose the factors you'll want to keep. At this point, delete anything that has missing data
-full_train <- full_train[colSums(is.na(full_train)) == 0]
-full_test <- full_test[colSums(is.na(full_test)) == 0]
+# Keep only the factors that have at least half the data available in training set
+full_train <- full_train[colSums(is.na(full_train)) < nrow(full_train)/2]
+
+# Use those same factors in the test set
+full_test <- full_test[, which(names(full_test) %in% names(full_train))]
+
+# fill in the missing values with the median value
 
 # Select the factors you want to use. Expand this later.
 factors <- c("price_doc",
              "id",
-            # "unemployment",
-           #  "salary_growth",
+             "unemployment",
+             "salary_growth",
              "mortgage_growth",
-            # "pop_natural_increase",
+             "pop_natural_increase",
              "deposits_rate",
              "gdp_quart_growth",
              "eurrub",
