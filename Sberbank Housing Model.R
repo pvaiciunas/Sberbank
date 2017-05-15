@@ -60,9 +60,9 @@ test_x <- full_test
 pmt = proc.time()
 model = xgboost(data = as.matrix(train_x), 
                 label = train_y,
-                eta = 0.1,
-                max_depth = 3, 
-                nround=1000, 
+                eta = 0.05,
+                max_depth = 6, 
+                nround=250, 
                 subsample = 0.75,
                 colsample_bytree = 0.5,
                 seed = 100,
@@ -76,6 +76,7 @@ pred = predict(model,  as.matrix(test_x), missing=NaN)
 pred_matrix = matrix(pred, nrow = nrow(full_test), byrow = TRUE)
 
 submission <- data.frame(id = full_test$id, price_doc = pred_matrix)
+submission$price_doc <- ifelse(submission$price_doc < 0, median(train_y), submission$price_doc)
 
 write.csv(as.matrix(submission), 
           "C:/Users/pvaiciunas/Google Drive/Programming/R/Kaggle/Sberbank Russian Housing/submission.csv",
