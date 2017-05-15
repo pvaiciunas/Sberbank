@@ -77,3 +77,7 @@ pred = predict(model,  as.matrix(test_x), missing=NaN)
 pred_matrix = matrix(pred, nrow = nrow(full_test), byrow = TRUE)
 
 submission <- data.frame(id = full_test$id, price_doc = pred_matrix)
+
+write.csv(as.matrix(submission), 
+          "C:/Users/pvaiciunas/Google Drive/Programming/R/Kaggle/Sberbank Russian Housing/submission.csv",
+          row.names = FALSE)
