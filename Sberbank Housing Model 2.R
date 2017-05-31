@@ -138,3 +138,13 @@ train <- train %>%
 train <- train %>%
   group_by(apartment_name) %>%
   tally() %>%
+  right_join(train, by = "apartment_name")
+
+######################
+# Sale Characteristics
+######################
+
+train <- train %>% 
+  group_by(year_month) %>% 
+  summarize(n_sales_permonth = n()) %>% 
+  right_join(train,by="year_month")
