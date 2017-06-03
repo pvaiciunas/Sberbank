@@ -11,6 +11,7 @@ library(Matrix)
 library(xgboost)
 library(geosphere)
 library(rgdal)
+library(sp)
 
 
 train <- read.csv("C:/Users/pvaiciunas/Google Drive/Programming/R/Kaggle/Sberbank Russian Housing/train.csv/train.csv")
@@ -148,3 +149,17 @@ train <- train %>%
   group_by(year_month) %>% 
   summarize(n_sales_permonth = n()) %>% 
   right_join(train,by="year_month")
+
+###########################
+# Sub-area characteristics
+###########################
+
+# We are using external data here that was created by a kaggler
+# The file has all the Russian regions organized by coordinates that
+# can be used to fit the existing data
+
+# This is using the 'sp' package that works with Spatial Vector Objects
+shp <- readOGR(dsn = "C:/Users/pvaiciunas/Google Drive/Programming/R/Kaggle/Sberbank Russian Housing/administrative-divisions-of-moscow",
+               layer = "moscow_adm")
+
+
