@@ -162,4 +162,108 @@ train <- train %>%
 shp <- readOGR(dsn = "C:/Users/pvaiciunas/Google Drive/Programming/R/Kaggle/Sberbank Russian Housing/administrative-divisions-of-moscow",
                layer = "moscow_adm")
 
+centroids <- coordinates(shp)
+sub_area <- shp$RAION
+okrug <- shp$OKRUGS
+location_data <- data.frame(sub_area = sub_area, okrug = okrug, longitude=centroids[,1], latitude=centroids[,2])
+
+train <- train %>%
+  left_join(location_data, by = "sub_area") # all rows from train
+
+# Calculate distance from Kremlin for each sub_area
+kremlin = data.frame(longitude = 37.617664,latitude = 55.752121)
+train <- train %>%
+  group_by(sub_area) %>%
+  top_n(n = 1, wt = id) %>%
+  ungroup %>%
+  mutate(distance_from_kremlin = distm(.[c("longitude", "latitude")], kremlin, fun = distHaversine)) %>%
+  select(sub_area, distance_from_kremlin) %>%
+  right_join(train, by = "sub_area") # all rows from 'train'
+  
+
+######################
+# Pricing of sub areas
+######################
+
+# average price per raion
+train <- train %>%
+  group_by(sub_area) %>%
+  summarize(mean_price_raion = mean(price_doc)) %>%
+  right_join(train, by = "sub_area")
+
+# average price per raion per year
+train <- train %>%
+  group_by(sub_area, year) %>%
+  summarize(mean_price_raion_year = mean(price_doc)) %>%
+  right_join(train, by = c("sub_area", "year"))
+
+# average price per sqm per raion
+train <- train %>%
+  group_by(sub_area) %>%
+  summarize(mean_price_persqm_raion = mean(price_doc / full_sq, na.rm = T)) %>%
+  right_join(train, by = "sub_area")
+
+
+############################
+# Population characteristics
+############################
+  
+# Population density per raion
+train <- train %>% 
+  mutate(pop_density_raion = raion_popul/area_m)
+
+# Demographic structure of the raions
+train <- train %>% 
+  mutate(young_proportion = young_all/full_all) # proportion of people younger than working age
+train <- train %>% 
+  mutate(work_proportion = work_all/full_all) # proportion of people in working age
+train <- train %>% 
+  mutate(retire_proportion = ekder_all/full_all) # proportion of people older than working age
+
+###########################
+# Building Information
+###########################
+
+# average building height per raion
+train <- train %>% 
+  group_by(sub_area) %>% 
+  summarize(mean_building_height = mean(max_floor,na.rm=T)) %>% 
+  right_join(train,by="sub_area")
+
+# Proportion of houses with certain build materials (e.g. 10% build_count_wood)
+train<-train %>% 
+  mutate_each(funs(pct = (.)/raion_build_count_with_builddate_info),matches('^build_count_[a-zA-Z]*$'))
+
+
+#############################
+# Educational Characteristics
+#############################
+
+# ratio of number of pupils and preschool seats
+train <- train %>% 
+  mutate(ratio_preschool = children_preschool / preschool_quota)
+
+# ratio of number of pupils and school seats
+train <- train %>% 
+  mutate(ratio_school = children_school / school_quota)
+
+
+#########################
+# dataset related features
+########################
+
+# number of missing values per row (this is going to take a while)
+train <- train %>% 
+  mutate(count_na_perrow = apply(., 1, function(x) sum(is.na(x))))
+
+###################
+#Feature Importance
+###################
+
+outcomes <- train$price_doc
+
+basic_features <- c("full_sq", "life_sq", "kitch_sq", "num_room", "floor", "max_floor", "material", "build_year", "state", "product_type")
+
+new_features <- c("month_of_year","week_of_year", "day_of_month", "day_of_week", "floor_from_top", "floor_by_maxfloor", "roomsize", "life_proportion", "kitchen_proportion", "extra_area", "age_at_sale", "n_sales_permonth", "distance_from_kremlin", "young_proportion", "work_proportion", "retire_proportion", "mean_building_height", "ratio_preschool",
+                  "ratio_school", "count_na_perrow")
 
